@@ -16,6 +16,7 @@
 
 复制整个 `ticai` 文件夹，保留 `SKILL.md` 和 `references/`：
 
+- DSH：`~/.dsh/skills/ticai/`
 - Codex：`~/.codex/skills/ticai/`（或 `~/.agents/skills/ticai/`）
 - Claude Code：`~/.claude/skills/ticai/`
 - Gemini CLI：`~/.gemini/skills/ticai/`（或 `~/.agents/skills/ticai/`）
@@ -23,9 +24,32 @@
 
 `agents/openai.yaml` 是 Codex 的界面配置；其他产品可忽略。目标 Agent 需要具备联网查询能力，才能核验实时赛程、奖金与赛前信息。预测只供分析参考，不保证收益。
 
+技能只认一级目录 `<root>/<ticai>/SKILL.md`，更深的嵌套不会被发现。`SKILL.md` 的 frontmatter 要求 `name` 为 kebab-case、`description` 必填，不合规会被宿主静默跳过。
+
 ## 更新
 
-在本地仓库执行 `git pull`，然后把 `ticai` 文件夹重新复制到上面对应的技能目录（覆盖 `SKILL.md` 和 `references/`）。
+改完 `SKILL.md` 或 `references/` 后推送，再同步到宿主技能目录：
+
+```powershell
+git pull
+powershell -ExecutionPolicy Bypass -File scripts\sync.ps1 -Check   # 只校验，看哪里不一致
+powershell -ExecutionPolicy Bypass -File scripts\sync.ps1          # 同步已存在的技能根
+```
+
+`scripts/sync.ps1` 会同步到各宿主技能根，并在复制后回读校验文件内容，避免“改了但没生效”。常用参数：
+
+| 参数 | 作用 |
+| --- | --- |
+| `-Check` | 只校验不修改，逐根报告一致 / 不一致 / 缺失 |
+| `-All` | 连同当前不存在的技能根一起创建 |
+| `-Sync` | 覆盖目标里已存在的实体目录（默认不动，避免误删本地变体） |
+| `-Roots` / `-LinkRoots` | 自定义技能根、以及哪些根用目录链接代替复制 |
+
+默认布局：`~/.dsh/skills` 和 `~/.codex/skills` 存真实副本；`~/.agents/skills` 和 `~/.claude/skills` 用目录链接（优先 symlink，权限不足时自动退化为 junction）指向工作副本，这样它们不需要二次同步。想让所有根都用链接，设 `TICAI_SYNC_LINKS=all`；只想链接部分根，把它设为分号分隔的路径列表。
+
+用链接意味着这些目录指向本地工作副本所在磁盘：副本被移动、重命名或所在磁盘脱机时会失效。想要各宿主完全自包含，改用 `-Roots ... -LinkRoots <不存在的占位路径>` 让所有根都走复制。
+
+脚本的提示信息全部是 ASCII：Windows PowerShell 5.1 会把不带 BOM 的文件按 ANSI 解码，含中文会乱码并可能直接解析失败。
 
 ## 限制
 
