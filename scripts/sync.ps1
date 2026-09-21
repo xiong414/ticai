@@ -20,9 +20,10 @@
                       where DSH's session catalog actually resolved this skill, ~/.codex/skills is
                       the Codex CLI location).
 
-    A root that already holds a real directory instead of a link is left untouched unless -Sync is
-    passed, so an unexpected local variant is never deleted by accident. Only skill files are ever
-    touched (SKILL.md, README.md, agents, references); .git and scripts are skipped.
+    A root that holds a real directory is updated in place, so a stale copy is fixed by a plain
+    run. Pass -NoOverwrite to leave differing real directories alone and only report the diff.
+    Only skill files are ever touched (SKILL.md, README.md, agents, references); .git and scripts
+    are skipped.
 
     Script messages are ASCII on purpose: Windows PowerShell 5.1 decodes files without a BOM as
     ANSI, which corrupts non-ASCII text and can break parsing on other machines or editors.
@@ -43,8 +44,9 @@
 .PARAMETER All
     Also create and populate roots that do not exist yet.
 
-.PARAMETER Sync
-    Update roots that currently hold a real directory, replacing them with the requested mode.
+.PARAMETER NoOverwrite
+    Leave a differing real directory in place and only report the difference. By default such a
+    root is updated, which is what fixes an outdated copy.
 
 .PARAMETER Check
     Verify only; report what each root currently serves. Changes nothing.
@@ -58,8 +60,12 @@
     Update every root that already exists.
 
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File scripts\sync.ps1 -All -Sync
-    Update every root, create missing ones, and replace stray real directories.
+    powershell -ExecutionPolicy Bypass -File scripts\sync.ps1 -All
+    Update every root and create the missing ones.
+
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File scripts\sync.ps1 -NoOverwrite
+    Report differences in real directories without touching them.
 #>
 [CmdletBinding()]
 param(
@@ -67,7 +73,7 @@ param(
     [string[]]$Roots,
     [string[]]$LinkRoots,
     [switch]$All,
-    [switch]$Sync,
+    [switch]$NoOverwrite,
     [switch]$Check
 )
 
@@ -231,14 +237,13 @@ foreach ($root in $Roots) {
         continue
     }
 
-    if ($destExists -and -not $isLink -and -not $Sync) {
+    if ($destExists -and -not $isLink -and $NoOverwrite) {
         $bad = Compare-ToSource -Dest $dest -SrcHashes $srcHashes
         if ($bad.Count -eq 0) {
-            Write-Output '  already up to date (real directory); pass -Sync to convert it to mode'
+            Write-Output '  already up to date (real directory)'
         }
         else {
-            Write-Output '  STALE real directory, left untouched. Re-run with -Sync to replace it,'
-            Write-Output '  or remove it manually if it is no longer wanted:'
+            Write-Output '  DIFFERS (real directory), left untouched by -NoOverwrite:'
             $bad | ForEach-Object { Write-Output "    - $_" }
             $failed++
         }

@@ -42,8 +42,10 @@ powershell -ExecutionPolicy Bypass -File scripts\sync.ps1          # 同步已�
 | --- | --- |
 | `-Check` | 只校验不修改，逐根报告一致 / 不一致 / 缺失 |
 | `-All` | 连同当前不存在的技能根一起创建 |
-| `-Sync` | 覆盖目标里已存在的实体目录（默认不动，避免误删本地变体） |
+| `-NoOverwrite` | 只报告实体目录的差异、不动它（默认会直接更新，以修掉陈旧副本） |
 | `-Roots` / `-LinkRoots` | 自定义技能根、以及哪些根用目录链接代替复制 |
+
+脚本退出码：`0` 成功、`1` 有技能根未对齐、`2` 源 `SKILL.md` 的 frontmatter 不合规。可以把它放进提交前检查或计划任务里。
 
 默认布局：`~/.dsh/skills` 和 `~/.codex/skills` 存真实副本；`~/.agents/skills` 和 `~/.claude/skills` 用目录链接（优先 symlink，权限不足时自动退化为 junction）指向工作副本，这样它们不需要二次同步。想让所有根都用链接，设 `TICAI_SYNC_LINKS=all`；只想链接部分根，把它设为分号分隔的路径列表。
 
