@@ -1,0 +1,3 @@
+interface:
+  display_name: "体彩预测"
+  short_description: "分析竞彩足球赛前信息、赔率与单关资格，筛选投注候选"
